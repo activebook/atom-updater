@@ -61,15 +61,10 @@ release:
   prerelease: auto
   make_latest: false
 
-# Checksum generation
+# Checksum generation (no signing required)
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
-
-# Sign releases
-signs:
-  - artifacts: checksum
-    args: ["--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
 
 # Create GitHub release with source code
 source:
