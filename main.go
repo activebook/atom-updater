@@ -14,7 +14,7 @@ import (
 )
 
 // Version is the current version of atom-updater
-const Version = "v1.0.0"
+const Version = "v1.0.1"
 
 // Windows creation flags (numeric constants to avoid extra deps).
 // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
