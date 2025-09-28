@@ -140,7 +140,7 @@ echo "All checks passed. Proceeding with release..."
 
 # --- Release Steps ---
 # 1. Extract version from the Go file
-VERSION=$(grep 'const version' "$VERSION_FILE" | sed -E 's/.*"([^"]+)".*/\1/')
+VERSION=$(grep 'const Version' "$VERSION_FILE" | sed -E 's/.*"([^"]+)".*/\1/')
 
 if [ -z "$VERSION" ]; then
   echo "Error: Could not find version in $VERSION_FILE"
