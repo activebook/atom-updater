@@ -130,7 +130,9 @@ func launchApplication(appPath string) error {
 
 	switch runtime.GOOS {
 	case "windows":
-		cmd = exec.Command("cmd", "/C", appPath)
+		// For Windows, try multiple approaches to avoid console window
+		// First try: direct execution (may show console for console apps)
+		cmd = exec.Command(appPath)
 	case "darwin":
 		cmd = exec.Command("open", appPath)
 	default: // linux and others
