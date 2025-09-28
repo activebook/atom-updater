@@ -16,6 +16,14 @@ import (
 // Version is the current version of atom-updater
 const Version = "1.0.0"
 
+// Windows creation flags (numeric constants to avoid extra deps).
+// https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+// const (
+// 	wCreateNoWindow   = 0x08000000 // CREATE_NO_WINDOW
+// 	wDetachedProcess  = 0x00000008 // DETACHED_PROCESS
+// 	wCreateNewProcGrp = 0x00000200 // CREATE_NEW_PROCESS_GROUP
+// )
+
 // generateTempFilename creates a unique temporary filename
 func generateTempFilename(originalPath, suffix string) string {
 	timestamp := strconv.FormatInt(time.Now().UnixNano(), 16)
@@ -124,27 +132,51 @@ func atomicReplace(currentPath, newPath string) error {
 
 // launchApplication launches the updated application
 func launchApplication(appPath string) error {
-	log.Printf("Launching updated application: %s", appPath)
+	if appPath == "" {
+		return fmt.Errorf("app path is empty")
+	}
+	absPath, err := filepath.Abs(appPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve app path: %w", err)
+	}
+	workDir := filepath.Dir(absPath)
+
+	log.Printf("Launching application: %s", absPath)
 
 	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "windows":
-		// For Windows, try multiple approaches to avoid console window
-		// First try: direct execution (may show console for console apps)
-		cmd = exec.Command(appPath)
+		// For Windows: ensure no console window appears even for console-subsystem EXEs.
+		cmd = exec.Command(absPath)
+		cmd.Dir = workDir
+
+		// Detach from the parent console and do not create a new one.
+		// HideWindow suppresses any window associated with the process creation.
+		// cmd.SysProcAttr = &syscall.SysProcAttr{
+		// 	HideWindow:    true,
+		// 	CreationFlags: wDetachedProcess | wCreateNoWindow | wCreateNewProcGrp,
+		// }
+
+		// Do NOT inherit stdio; attaching stdio can rebind to a console.
+		cmd.Stdin = nil
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+
 	case "darwin":
-		cmd = exec.Command("open", appPath)
+		// On macOS, use open so app bundles (.app) launch properly.
+		// For raw binaries, open will also work, but you can call the binary directly if needed.
+		cmd = exec.Command("open", absPath)
+		cmd.Dir = workDir
+
 	default: // linux and others
-		cmd = exec.Command(appPath)
+		// On Linux, launching directly is fine. If opening a desktop file or URL, prefer xdg-open.
+		cmd = exec.Command(absPath)
+		cmd.Dir = workDir
 	}
 
-	cmd.Dir = filepath.Dir(appPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to launch application: %v", err)
+		return fmt.Errorf("failed to launch application: %w", err)
 	}
 
 	log.Printf("Application launched with PID: %d", cmd.Process.Pid)
@@ -224,13 +256,30 @@ func main() {
 		log.Fatalf("Invalid PID '%s': %v", os.Args[1], err)
 	}
 
-	currentPath := os.Args[2]
-	newPath := os.Args[3]
+	// Resolve paths to absolute paths to handle relative paths correctly
+	currentPath, err := filepath.Abs(os.Args[2])
+	if err != nil {
+		log.Fatalf("Failed to resolve current path '%s': %v", os.Args[2], err)
+	}
+
+	newPath, err := filepath.Abs(os.Args[3])
+	if err != nil {
+		log.Fatalf("Failed to resolve new path '%s': %v", os.Args[3], err)
+	}
 
 	log.Printf("Starting update process:")
 	log.Printf("  PID: %d", pid)
 	log.Printf("  Current path: %s", currentPath)
 	log.Printf("  New path: %s", newPath)
+
+	// Validate that source files exist
+	if _, err := os.Stat(currentPath); os.IsNotExist(err) {
+		log.Fatalf("Current application does not exist: %s", currentPath)
+	}
+
+	if _, err := os.Stat(newPath); os.IsNotExist(err) {
+		log.Fatalf("New application does not exist: %s", newPath)
+	}
 
 	// Step 1: Wait for the target process to exit
 	log.Printf("Waiting for process %d to exit...", pid)
