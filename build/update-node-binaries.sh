@@ -46,60 +46,57 @@ if [ ! -d "$NODE_BIN_DIR" ]; then
     exit 1
 fi
 
-# Find all archive files (tar.gz and zip)
-ARCHIVES=$(find "$DIST_DIR" -type f \( -name "*.tar.gz" -o -name "*.zip" \) | grep -v "source")
+# Find all binary directories (from goreleaser build)
+BINARY_DIRS=$(find "$DIST_DIR" -type d -name "atom-updater_*" | grep -v "source")
 
-if [ -z "$ARCHIVES" ]; then
+if [ -z "$BINARY_DIRS" ]; then
     if [ "$CHECK_ONLY" = true ]; then
-        echo -e "${YELLOW}⚠️  No archive files found in dist/.${NC}"
+        echo -e "${YELLOW}⚠️  No binary directories found in dist/.${NC}"
         exit 1
     else
-        echo -e "${YELLOW}⚠️  No archive files found in dist/. Run GoReleaser build first.${NC}"
+        echo -e "${YELLOW}⚠️  No binary directories found in dist/. Run GoReleaser build first.${NC}"
         exit 0
     fi
 fi
 
-echo -e "${GREEN}📦 Found archives:${NC}"
-echo "$ARCHIVES" | sed 's/^/  - /'
+echo -e "${GREEN}📦 Found binary directories:${NC}"
+echo "$BINARY_DIRS" | sed 's/^/  - /'
 
-# Process each archive (unless in check-only mode)
+# Process each binary directory (unless in check-only mode)
 if [ "$CHECK_ONLY" = true ]; then
-    echo -e "${GREEN}✅ Found $(echo "$ARCHIVES" | wc -l) archive(s) ready for processing${NC}"
-    echo -e "${GREEN}📦 Archive list:${NC}"
-    echo "$ARCHIVES" | sed 's/^/  - /'
+    echo -e "${GREEN}✅ Found $(echo "$BINARY_DIRS" | wc -l) binary directory(ies) ready for processing${NC}"
+    echo -e "${GREEN}📦 Binary directory list:${NC}"
+    echo "$BINARY_DIRS" | sed 's/^/  - /'
     exit 0
 fi
 
-while IFS= read -r archive; do
-    echo -e "\n${YELLOW}🔍 Processing: $(basename "$archive")${NC}"
+while IFS= read -r binary_dir; do
+    echo -e "\n${YELLOW}🔍 Processing: $(basename "$binary_dir")${NC}"
 
-    # Extract archive name without extension
-    archive_name=$(basename "$archive")
-    archive_no_ext="${archive_name%.*}"
+    # Extract directory name
+    dir_name=$(basename "$binary_dir")
 
-    # Determine platform and architecture from filename
-    # Format: atom-updater_{Platform}_{Architecture}
-    if [[ "$archive_name" =~ atom-updater_([^_]+)_(.+)\.(tar\.gz|zip) ]]; then
+    # Determine platform and architecture from directory name
+    # Format: atom-updater_{platform}_{arch}_{variant}
+    if [[ "$dir_name" =~ atom-updater_([^_]+)_([^_]+)_(.*) ]]; then
         platform_raw="${BASH_REMATCH[1]}"
         arch_raw="${BASH_REMATCH[2]}"
+        variant="${BASH_REMATCH[3]}"
 
-        echo -e "  ${GREEN}📋 Parsed: platform=$platform_raw, arch=$arch_raw${NC}"
+        echo -e "  ${GREEN}📋 Parsed: platform=$platform_raw, arch=$arch_raw, variant=$variant${NC}"
 
         # Map GoReleaser naming to our directory structure
         case "$platform_raw" in
-            "Darwin") platform_dir="darwin" ;;
-            "Linux") platform_dir="linux" ;;
-            "Windows") platform_dir="win32" ;;
+            "darwin") platform_dir="darwin" ;;
+            "linux") platform_dir="linux" ;;
+            "windows") platform_dir="win32" ;;
             *) echo -e "${RED}❌ Unknown platform: $platform_raw${NC}"; continue ;;
         esac
 
         case "$arch_raw" in
-            "x86_64") arch_dir="x64" ;;
-            "i386") arch_dir="ia32" ;;
-            "arm64") arch_dir="arm64" ;;
             "amd64") arch_dir="x64" ;;
             "386") arch_dir="ia32" ;;
-            "64") arch_dir="x64" ;;  # Handle cases like "Darwin_x86_64" -> "64"
+            "arm64") arch_dir="arm64" ;;
             *) echo -e "${RED}❌ Unknown architecture: $arch_raw${NC}"; continue ;;
         esac
 
@@ -110,35 +107,31 @@ while IFS= read -r archive; do
         # Create target directory if it doesn't exist
         mkdir -p "$target_dir"
 
-        # Extract archive to target directory
-        if [[ "$archive" == *.tar.gz ]]; then
-            echo -e "  ${GREEN}📦 Extracting tar.gz...${NC}"
-            tar -xzf "$archive" -C "$target_dir"
-        elif [[ "$archive" == *.zip ]]; then
-            echo -e "  ${GREEN}📦 Extracting zip...${NC}"
-            unzip -q "$archive" -d "$target_dir"
+        # Find the binary file in the source directory
+        source_binary="$binary_dir/atom-updater"
+        if [[ "$platform_raw" == "windows" ]]; then
+            source_binary="$binary_dir/atom-updater.exe"
         fi
 
-        # Set executable permissions on the binary
-        binary_path="$target_dir/atom-updater"
-        if [[ "$platform" == "windows" ]]; then
-            binary_path="$target_dir/atom-updater.exe"
+        # Check if source binary exists
+        if [ ! -f "$source_binary" ]; then
+            echo -e "  ${RED}❌ Source binary not found: $source_binary${NC}"
+            continue
         fi
 
-        if [ -f "$binary_path" ]; then
-            chmod +x "$binary_path"
-            echo -e "  ${GREEN}✅ Binary extracted and permissions set${NC}"
-        else
-            echo -e "  ${RED}❌ Binary not found after extraction: $binary_path${NC}"
-        fi
+        # Copy binary to target directory
+        target_binary="$target_dir/$(basename "$source_binary")"
+        cp "$source_binary" "$target_binary"
 
-        # Keep the original archive file (don't delete it)
-        echo -e "  ${GREEN}✅ Archive processed and kept${NC}"
+        # Set executable permissions
+        chmod +x "$target_binary"
+
+        echo -e "  ${GREEN}✅ Binary copied and permissions set${NC}"
 
     else
-        echo -e "  ${YELLOW}⚠️  Skipping unrecognized archive: $archive_name${NC}"
+        echo -e "  ${YELLOW}⚠️  Skipping unrecognized directory: $dir_name${NC}"
     fi
-done <<< "$ARCHIVES"
+done <<< "$BINARY_DIRS"
 
 # Count total binaries installed
 total_binaries=0
