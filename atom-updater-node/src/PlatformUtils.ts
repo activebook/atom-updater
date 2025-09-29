@@ -1,4 +1,9 @@
-import { Platform, Architecture, PlatformInfo, ExecutableNotFoundError } from './types';
+import { Platform, Architecture, PlatformInfo, ExecutableNotFoundError } from './types.js';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Utility class for platform-specific operations
@@ -8,7 +13,7 @@ export class PlatformUtils {
    * Get current platform information
    */
   static getCurrentPlatform(): Platform {
-    const currentPlatform = require('os').platform();
+    const currentPlatform = os.platform();
     if (currentPlatform === 'darwin') return 'darwin';
     if (currentPlatform === 'linux') return 'linux';
     if (currentPlatform === 'win32') return 'windows';
@@ -19,7 +24,7 @@ export class PlatformUtils {
    * Get current architecture information
    */
   static getCurrentArchitecture(): Architecture {
-    const currentArch = require('process').arch;
+    const currentArch = process.arch;
     if (currentArch === 'x64') return 'x64';
     if (currentArch === 'arm64') return 'arm64';
     if (currentArch === 'ia32') return 'ia32';
@@ -65,10 +70,6 @@ export class PlatformUtils {
    * Find the atom-updater executable in various locations
    */
   static findExecutable(customPath?: string): string {
-    const path = require('path');
-    const fs = require('fs');
-    const { execSync } = require('child_process');
-
     // If custom path is provided, use it
     if (customPath) {
       if (!fs.existsSync(customPath)) {
@@ -80,15 +81,18 @@ export class PlatformUtils {
     const platformInfo = this.getPlatformInfo();
     const executableName = platformInfo.executableName;
 
+    // Get current module directory for ES modules
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
     // Search locations in order of preference
     const searchPaths = [
       // Current working directory
-      path.join(require('process').cwd(), executableName),
+      path.join(process.cwd(), executableName),
       // Relative to the Node.js module
-      path.join(__dirname, '..', '..', executableName),
+      path.join(currentDir, '..', '..', executableName),
       // Common installation paths
-      path.join(require('process').cwd(), 'bin', executableName),
-      path.join(require('process').cwd(), 'dist', executableName)
+      path.join(process.cwd(), 'bin', executableName),
+      path.join(process.cwd(), 'dist', executableName)
     ];
 
     for (const searchPath of searchPaths) {
@@ -139,7 +143,6 @@ export class PlatformUtils {
    * Validate that a path is a directory (required by atom-updater)
    */
   static validateDirectory(filePath: string, name: string): void {
-    const fs = require('fs');
     if (!fs.existsSync(filePath)) {
       throw new Error(`${name} does not exist: ${filePath}`);
     }

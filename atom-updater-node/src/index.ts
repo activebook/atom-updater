@@ -6,8 +6,8 @@
  */
 
 // Main classes and functions
-export { AtomUpdater } from './AtomUpdater';
-export { PlatformUtils } from './PlatformUtils';
+export { AtomUpdater } from './AtomUpdater.js';
+export { PlatformUtils } from './PlatformUtils.js';
 
 // Types and interfaces
 export type {
@@ -18,7 +18,7 @@ export type {
   Architecture,
   PlatformInfo,
   DownloadOptions
-} from './types';
+} from './types.js';
 
 // Error classes
 export {
@@ -26,11 +26,11 @@ export {
   ExecutableNotFoundError,
   UpdateFailedError,
   DownloadFailedError
-} from './types';
+} from './types.js';
 
 // Convenience function for quick updates
-import { AtomUpdater } from './AtomUpdater';
-import { UpdateConfig, UpdateResult } from './types';
+import { AtomUpdater } from './AtomUpdater.js';
+import { UpdateConfig, UpdateResult } from './types.js';
 
 /**
  * Convenience function to perform an update with default options

@@ -1,5 +1,9 @@
-import { UpdateConfig, UpdateResult, AtomUpdaterOptions, ExecutableNotFoundError, UpdateFailedError } from './types';
-import { PlatformUtils } from './PlatformUtils';
+import { UpdateConfig, UpdateResult, AtomUpdaterOptions, ExecutableNotFoundError, UpdateFailedError } from './types.js';
+import { PlatformUtils } from './PlatformUtils.js';
+import process from 'node:process';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
+import { existsSync, statSync } from 'node:fs';
 
 /**
  * Main class for atom-updater Node.js wrapper
@@ -12,7 +16,7 @@ export class AtomUpdater {
   constructor(options: AtomUpdaterOptions = {}) {
     this.options = {
       executablePath: options.executablePath || '',
-      workingDirectory: options.workingDirectory || require('process').cwd(),
+      workingDirectory: options.workingDirectory || process.cwd(),
       verbose: options.verbose || false,
       logger: options.logger || ((msg: string) => {})
     };
@@ -26,7 +30,6 @@ export class AtomUpdater {
   async getVersion(): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        const { spawn } = require('child_process');
         const child = spawn(this.executablePath, ['--version'], {
           cwd: this.options.workingDirectory,
           stdio: ['pipe', 'pipe', 'pipe']
@@ -98,7 +101,6 @@ export class AtomUpdater {
         }
 
         // Spawn the updater process
-        const { spawn } = require('child_process');
         const child = spawn(this.executablePath, args, {
           cwd: this.options.workingDirectory,
           stdio: 'inherit', // Inherit parent's stdio to show progress
@@ -141,23 +143,20 @@ export class AtomUpdater {
    * Get the expected log file path
    */
   private getLogPath(): string {
-    const path = require('path');
-    return path.join(this.options.workingDirectory, 'atom-updater.log');
+    return join(this.options.workingDirectory, 'atom-updater.log');
   }
 
   /**
    * Monitor for log file creation (simple implementation)
    */
   private monitorLogFile(onLogCreated: (logPath: string) => void): void {
-    const fs = require('fs');
-    const path = require('path');
     const logPath = this.getLogPath();
 
     // Check if log file exists every 100ms for the first 2 seconds
     let attempts = 0;
     const checkInterval = setInterval(() => {
       attempts++;
-      if (fs.existsSync(logPath)) {
+      if (existsSync(logPath)) {
         onLogCreated(logPath);
         clearInterval(checkInterval);
       } else if (attempts >= 20) { // 2 seconds

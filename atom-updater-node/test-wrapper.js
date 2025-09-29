@@ -5,7 +5,7 @@
  * This script tests the basic functionality without performing an actual update
  */
 
-const { AtomUpdater } = require('./dist/index');
+import { AtomUpdater } from './dist/index.js';
 
 async function testWrapper() {
   console.log('Testing atom-updater Node.js wrapper...\n');
