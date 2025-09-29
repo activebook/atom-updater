@@ -27,8 +27,16 @@ go.work.sum
 # env file
 .env
 
-# build cache
+# build cache (but not for atom-updater-node)
 dist/
 
 # design
 design.md
+
+# Node.js project (keep its own files)
+!atom-updater-node/dist/
+!atom-updater-node/.gitignore
+
+# Node.js dependencies and build artifacts
+atom-updater-node/node_modules/
+atom-updater-node/*.log
