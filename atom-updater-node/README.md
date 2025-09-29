@@ -11,6 +11,17 @@ A TypeScript Node.js wrapper for the [atom-updater](https://github.com/activeboo
 - 🚀 **Smart Application Launching**: Auto-detects and launches the correct application
 - 🌐 **Cross-Platform**: Works on Windows, macOS, and Linux
 - 📦 **Easy Integration**: Simple TypeScript API for Node.js and Electron apps
+- 🔗 **Self-Contained**: Bundled binaries eliminate external dependencies
+
+## How It Works
+
+This package uses a **bundled binary approach** where platform-specific `atom-updater` executables are included directly in the npm package. When you install the package, you get:
+
+- The TypeScript wrapper code
+- Pre-compiled `atom-updater` binaries for your platform
+- Automatic binary detection and selection
+
+The wrapper automatically finds and uses the correct binary for your platform and architecture, eliminating the need for separate downloads or installations.
 
 ## Installation
 
@@ -18,7 +29,7 @@ A TypeScript Node.js wrapper for the [atom-updater](https://github.com/activeboo
 npm install atom-updater
 ```
 
-> **Note**: This package requires the `atom-updater` Go executable to be available on your system. You can download it from the [releases page](https://github.com/activebook/atom-updater/releases).
+The package includes platform-specific `atom-updater` binaries, so no additional downloads are required. The wrapper automatically detects and uses the bundled binary for your platform and architecture.
 
 ## Quick Start
 
@@ -74,7 +85,7 @@ const version = await updater.getVersion();
 
 ##### `update(config: UpdateConfig): Promise<UpdateResult>`
 
-Perform an atomic update.
+Perform an atomic update by starting the atom-updater process as a detached background process. **This method returns immediately** - the actual update happens asynchronously after the calling process exits.
 
 ```typescript
 const result = await updater.update({
@@ -83,6 +94,10 @@ const result = await updater.update({
   newPath: '/path/to/new',
   appName: 'optional-app-name' // Optional
 });
+
+// The method returns immediately with success: true
+// The calling application should exit immediately after this call
+// atom-updater will wait for the exit, perform the update, and launch the new version
 ```
 
 ##### `isAvailable(): Promise<boolean>`
@@ -115,13 +130,27 @@ interface UpdateConfig {
 
 ```typescript
 interface UpdateResult {
-  success: boolean;      // Whether the update was successful
-  version?: string;      // Version of the updater used
-  logPath?: string;      // Path to the log file
-  error?: string;        // Error message if update failed
-  launchedPid?: number;  // Process ID of the launched application
+  success: boolean;      // Whether the update process was started successfully
+  logPath?: string;      // Path to the log file (atom-updater.log)
+  launchedPid?: number;  // Process ID of the atom-updater process
+  // Note: version and error fields are not used in the bundled binary approach
 }
 ```
+
+## Update Process Flow
+
+With the bundled binary approach, the update process follows this sequence:
+
+1. **Your app calls** `updater.update(config)` with paths and PID
+2. **Wrapper starts** `atom-updater` as a detached background process
+3. **Method returns immediately** with `success: true`
+4. **Your app exits** (via `app.quit()` in Electron or `process.exit()` in Node.js)
+5. **atom-updater waits** for your app process to fully exit
+6. **atom-updater performs** the atomic directory replacement
+7. **atom-updater launches** the new version of your application
+8. **atom-updater exits**
+
+This approach ensures safe, atomic updates without the chicken-and-egg problem of waiting for completion.
 
 ## Integration Examples
 
@@ -158,13 +187,15 @@ class AppUpdater {
       });
 
       if (result.success) {
-        console.log('Update successful!');
+        console.log('Update initiated successfully!');
+        console.log(`Log file: ${result.logPath}`);
 
-        // The updater will automatically launch the new version
-        // and exit the current process
+        // Exit immediately - atom-updater will handle the rest
+        // It will wait for this process to exit, perform the update,
+        // and launch the new version automatically
         app.quit();
       } else {
-        console.error('Update failed:', result.error);
+        console.error('Update failed to start:', result.error);
       }
     } catch (error) {
       console.error('Update error:', error);
@@ -192,10 +223,13 @@ async function performUpdate() {
     });
 
     if (result.success) {
-      console.log('Update completed successfully!');
-      console.log(`Check the log file: ${result.logPath}`);
+      console.log('Update initiated successfully!');
+      console.log(`Log file: ${result.logPath}`);
+
+      // Exit immediately - atom-updater will handle the rest
+      process.exit(0);
     } else {
-      console.error('Update failed:', result.error);
+      console.error('Update failed to start:', result.error);
     }
   } catch (error) {
     console.error('Update process failed:', error);
@@ -216,14 +250,16 @@ const updater = new AtomUpdater({
 
 ## Platform Support
 
-- **Windows**: `amd64`, `386`
-- **macOS**: `amd64`, `arm64` (Apple Silicon) - **optimized for .app bundles**
-- **Linux**: `amd64`, `arm64`, `386`
+- **Windows**: `amd64`, `386` - bundled binaries included
+- **macOS**: `amd64`, `arm64` (Apple Silicon) - bundled binaries included, **optimized for .app bundles**
+- **Linux**: `amd64`, `arm64`, `386` - bundled binaries included
+
+The package includes platform-specific binaries, so no additional downloads are required.
 
 ## Requirements
 
 - Node.js 14.0.0 or later
-- The `atom-updater` Go executable must be available on your system
+- No additional dependencies - the `atom-updater` binary is bundled with the package
 
 ## Error Handling
 
@@ -258,18 +294,3 @@ The atom-updater executable provides comprehensive logging:
 - **Debug Information**: Timestamps and source file names for troubleshooting
 
 The log file is created in the same directory as the `atom-updater` executable.
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Contributing
-
-Contributions are welcome! Please see the main [atom-updater repository](https://github.com/activebook/atom-updater) for contribution guidelines.
-
-## Support
-
-For issues and questions:
-
-- [GitHub Issues](https://github.com/activebook/atom-updater/issues)
-- [Discussions](https://github.com/activebook/atom-updater/discussions)

@@ -64,6 +64,7 @@ export class AtomUpdater {
 
   /**
    * Perform an atomic update using the atom-updater executable
+   * This method starts the updater as a detached process and exits immediately
    */
   async update(config: UpdateConfig): Promise<UpdateResult> {
     // Validate inputs
@@ -82,55 +83,51 @@ export class AtomUpdater {
       }
     }
 
-    return new Promise((resolve, reject) => {
-      try {
-        // Build command arguments
-        const args = [
-          config.pid.toString(),
-          config.currentPath,
-          config.newPath
-        ];
+    try {
+      // Build command arguments
+      const args = [
+        config.pid.toString(),
+        config.currentPath,
+        config.newPath
+      ];
 
-        if (config.appName) {
-          args.push('--app-name', config.appName);
-        }
-
-        if (this.options.verbose) {
-          this.options.logger(`Executing: ${this.executablePath} ${args.join(' ')}`);
-        }
-
-        // Spawn the updater process
-        const child = spawn(this.executablePath, args, {
-          cwd: this.options.workingDirectory,
-          stdio: 'inherit', // Inherit parent's stdio to show progress
-          detached: false
-        });
-
-        let logPath = '';
-        let launchedPid: number | undefined;
-
-        child.on('close', (code: number) => {
-          if (code === 0) {
-            const result: UpdateResult = {
-              success: true,
-              version: undefined, // We could get this from getVersion() if needed
-              logPath: this.getLogPath(),
-              launchedPid
-            };
-            resolve(result);
-          } else {
-            reject(new UpdateFailedError(`Update process exited with code ${code}`));
-          }
-        });
-
-        child.on('error', (error: Error) => {
-          reject(new UpdateFailedError(`Failed to start update process: ${error.message}`, error));
-        });
-
-      } catch (error) {
-        reject(new UpdateFailedError(`Failed to execute update: ${error}`, error as Error));
+      if (config.appName) {
+        args.push('--app-name', config.appName);
       }
-    });
+
+      if (this.options.verbose) {
+        this.options.logger(`Executing: ${this.executablePath} ${args.join(' ')}`);
+      }
+
+      // Start atom-updater as detached process
+      // atom-updater will wait for this process to exit, then perform the update
+      const child = spawn(this.executablePath, args, {
+        cwd: this.options.workingDirectory,
+        // stdio: 'inherit', // Show progress to user, this would cause error, because the user app already quit!
+        stdio: 'ignore',   // No output
+        detached: true    // Run independently
+      });
+
+      // Unref the child process so it can run independently
+      child.unref();
+
+      if (this.options.verbose) {
+        this.options.logger(`Started atom-updater with PID: ${child.pid}`);
+        this.options.logger(`Log file will be available at: ${this.getLogPath()}`);
+      }
+
+      // Return immediately - atom-updater will handle the rest
+      const result: UpdateResult = {
+        success: true,
+        logPath: this.getLogPath(),
+        launchedPid: child.pid
+      };
+
+      return result;
+
+    } catch (error) {
+      throw new UpdateFailedError(`Failed to start update process: ${error}`, error as Error);
+    }
   }
 
   /**
