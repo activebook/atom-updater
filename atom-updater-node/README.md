@@ -4,14 +4,14 @@ A TypeScript Node.js wrapper for the [atom-updater](https://github.com/activeboo
 
 ## Features
 
-- 🔄 **Atomic Directory Updates**: All-or-nothing directory replacement with automatic rollback
-- 🍎 **macOS .app Bundle Support**: Specialized handling for directories containing .app bundles
-- 📊 **Comprehensive Logging**: Real-time console output + persistent log file
-- 🛡️ **Robust Error Handling**: Graceful failure handling with safe rollback
-- 🚀 **Smart Application Launching**: Auto-detects and launches the correct application
-- 🌐 **Cross-Platform**: Works on Windows, macOS, and Linux
-- 📦 **Easy Integration**: Simple TypeScript API for Node.js and Electron apps
-- 🔗 **Self-Contained**: Bundled binaries eliminate external dependencies
+- **Atomic Directory Updates**: All-or-nothing directory replacement with automatic rollback
+- **macOS .app Bundle Support**: Specialized handling for directories containing .app bundles
+- **Comprehensive Logging**: Real-time console output + persistent log file
+- **Robust Error Handling**: Graceful failure handling with safe rollback
+- **Smart Application Launching**: Auto-detects and launches the correct application
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Easy Integration**: Simple TypeScript API for Node.js and Electron apps
+- **Self-Contained**: Bundled binaries eliminate external dependencies
 
 ## How It Works
 
