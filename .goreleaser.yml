@@ -1,6 +1,8 @@
 # GoReleaser configuration for atom-updater
+version: 2
 
 project_name: atom-updater
+
 before:
   hooks:
     - go mod tidy
@@ -17,7 +19,7 @@ builds:
     goarch:
       - amd64
       - arm64
-      - 386
+      - "386"
     ignore:
       - goos: windows
         goarch: arm64
