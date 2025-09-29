@@ -3,6 +3,7 @@ import { PlatformUtils } from './PlatformUtils.js';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
+import fs from 'node:fs';
 
 /**
  * Main class for atom-updater Node.js wrapper
@@ -64,31 +65,61 @@ export class AtomUpdater {
 
   /**
    * Perform an atomic update using the atom-updater executable
-   * This method starts the updater as a detached process and exits immediately
+   * This method handles self-update scenarios by copying the binary externally if needed
    */
   async update(config: UpdateConfig): Promise<UpdateResult> {
     // Validate inputs
-    PlatformUtils.validateDirectory(config.currentPath, 'Current path');
-    PlatformUtils.validateDirectory(config.newPath, 'New path');
-    PlatformUtils.validateNotAppBundle(config.currentPath, 'Current path');
-    PlatformUtils.validateNotAppBundle(config.newPath, 'New path');
+    PlatformUtils.validateDirectory(config.currentAppDir, 'Current app directory');
+    PlatformUtils.validateDirectory(config.newAppDir, 'New app directory');
+    PlatformUtils.validateNotAppBundle(config.currentAppDir, 'Current app directory');
+    PlatformUtils.validateNotAppBundle(config.newAppDir, 'New app directory');
 
     if (this.options.verbose) {
       this.options.logger(`Starting update with atom-updater:`);
       this.options.logger(`  PID: ${config.pid}`);
-      this.options.logger(`  Current: ${config.currentPath}`);
-      this.options.logger(`  New: ${config.newPath}`);
+      this.options.logger(`  Current App Dir: ${config.currentAppDir}`);
+      this.options.logger(`  New App Dir: ${config.newAppDir}`);
       if (config.appName) {
         this.options.logger(`  App Name: ${config.appName}`);
+      }
+      if (config.binDir) {
+        this.options.logger(`  External Binary Dir: ${config.binDir}`);
       }
     }
 
     try {
+      // Determine which executable to use
+      let executableToUse = this.executablePath;
+
+      // If binDir is provided, copy the bundled binary to external directory
+      if (config.binDir) {
+        if (this.options.verbose) {
+          this.options.logger(`Copying atom-updater binary to directory: ${config.binDir}`);
+        }
+
+        // Ensure the directory exists
+        fs.mkdirSync(config.binDir, { recursive: true });
+
+        // Get the executable filename
+        const executableName = this.executablePath.split('/').pop() || 'atom-updater';
+
+        // Copy the bundled binary to the external directory
+        const externalBinaryPath = join(config.binDir, executableName);
+        fs.copyFileSync(this.executablePath, externalBinaryPath);
+
+        // Use the external copy
+        executableToUse = externalBinaryPath;
+
+        if (this.options.verbose) {
+          this.options.logger(`Binary copied to: ${externalBinaryPath}`);
+        }
+      }
+
       // Build command arguments
       const args = [
         config.pid.toString(),
-        config.currentPath,
-        config.newPath
+        config.currentAppDir,
+        config.newAppDir
       ];
 
       if (config.appName) {
@@ -96,16 +127,15 @@ export class AtomUpdater {
       }
 
       if (this.options.verbose) {
-        this.options.logger(`Executing: ${this.executablePath} ${args.join(' ')}`);
+        this.options.logger(`Executing: ${executableToUse} ${args.join(' ')}`);
       }
 
       // Start atom-updater as detached process
       // atom-updater will wait for this process to exit, then perform the update
-      const child = spawn(this.executablePath, args, {
+      const child = spawn(executableToUse, args, {
         cwd: this.options.workingDirectory,
-        // stdio: 'inherit', // Show progress to user, this would cause error, because the user app already quit!
-        stdio: 'ignore',   // No output
-        detached: true    // Run independently
+        stdio: 'ignore',   // No output to avoid conflicts
+        detached: true     // Run independently
       });
 
       // Unref the child process so it can run independently

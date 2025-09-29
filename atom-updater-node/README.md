@@ -23,6 +23,16 @@ This package uses a **bundled binary approach** where platform-specific `atom-up
 
 The wrapper automatically finds and uses the correct binary for your platform and architecture, eliminating the need for separate downloads or installations.
 
+### Self-Updating Applications
+
+For applications that need to update themselves, use the `binPath` parameter to copy the atom-updater binary to an external location first:
+
+1. **Copy Phase**: The bundled binary is copied to an external directory outside your app
+2. **Update Phase**: The external copy performs the atomic directory replacement
+3. **Launch Phase**: The new version of your application is launched
+
+This approach prevents the updater from trying to replace itself during self-updates.
+
 ## Installation
 
 ```bash
@@ -45,15 +55,18 @@ console.log(`Atom updater version: ${version}`);
 // Perform update
 const result = await updater.update({
   pid: process.pid,
-  currentPath: '/path/to/current/app',
-  newPath: '/path/to/new/app/version'
+  currentAppDir: '/path/to/current/app',
+  newAppDir: '/path/to/new/app/version'
 });
 
 if (result.success) {
-  console.log('Update completed successfully!');
+  console.log('Update initiated successfully!');
   console.log(`Log file: ${result.logPath}`);
+
+  // Exit immediately - atom-updater will handle the rest
+  process.exit(0);
 } else {
-  console.error('Update failed:', result.error);
+  console.error('Update failed to start:', result.error);
 }
 ```
 
@@ -87,12 +100,15 @@ const version = await updater.getVersion();
 
 Perform an atomic update by starting the atom-updater process as a detached background process. **This method returns immediately** - the actual update happens asynchronously after the calling process exits.
 
+For self-updating applications, use the `binPath` parameter to copy the atom-updater binary to an external location first. This prevents the updater from trying to replace itself.
+
 ```typescript
 const result = await updater.update({
   pid: 12345,
   currentPath: '/path/to/current',
   newPath: '/path/to/new',
-  appName: 'optional-app-name' // Optional
+  appName: 'optional-app-name', // Optional
+  binPath: '/tmp/atom-updater-external' // Optional: for self-updates
 });
 
 // The method returns immediately with success: true
@@ -119,10 +135,11 @@ Get the path to the executable being used.
 ```typescript
 interface UpdateConfig {
   pid: number;           // Process ID to wait for exit
-  currentPath: string;   // Path to current application directory
-  newPath: string;       // Path to new application directory
+  currentAppDir: string; // Path to current application directory
+  newAppDir: string;     // Path to new application directory
   appName?: string;      // Optional specific executable to launch
   timeout?: number;      // Optional timeout for the update process
+  binDir?: string;       // Optional external directory to copy atom-updater binary (for self-updates)
 }
 ```
 
@@ -182,8 +199,8 @@ class AppUpdater {
     try {
       const result = await this.updater.update({
         pid: process.pid,
-        currentPath: __dirname, // Electron app directory
-        newPath: newVersionPath
+        currentAppDir: __dirname, // Electron app directory
+        newAppDir: newVersionPath
       });
 
       if (result.success) {
@@ -204,6 +221,47 @@ class AppUpdater {
 }
 ```
 
+### Self-Updating Electron Application
+
+```typescript
+import { AtomUpdater } from 'atom-updater';
+import { app } from 'electron';
+import path from 'path';
+import os from 'os';
+
+class AppUpdater {
+  private updater = new AtomUpdater({ verbose: true });
+
+  async performSelfUpdate(newVersionPath: string) {
+    try {
+      // For self-updates, copy the updater binary to an external directory
+      const tempDir = os.tmpdir();
+      const externalBinDir = path.join(tempDir, 'atom-updater-bin');
+
+      const result = await this.updater.update({
+        pid: process.pid,
+        currentAppDir: __dirname, // Electron app directory
+        newAppDir: newVersionPath,
+        binDir: externalBinDir // Copy binary to external directory for self-update
+      });
+
+      if (result.success) {
+        console.log('Self-update initiated successfully!');
+        console.log(`External updater: ${externalUpdaterPath}`);
+        console.log(`Log file: ${result.logPath}`);
+
+        // Exit immediately - external updater will handle the rest
+        app.quit();
+      } else {
+        console.error('Self-update failed to start:', result.error);
+      }
+    } catch (error) {
+      console.error('Self-update error:', error);
+    }
+  }
+}
+```
+
 ### Node.js Application
 
 ```typescript
@@ -218,8 +276,8 @@ async function performUpdate() {
     // Perform update
     const result = await update({
       pid: process.pid,
-      currentPath: process.cwd(),
-      newPath: './updates/new-version'
+      currentAppDir: process.cwd(),
+      newAppDir: './updates/new-version'
     });
 
     if (result.success) {

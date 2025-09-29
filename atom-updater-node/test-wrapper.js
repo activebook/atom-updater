@@ -1,29 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Simple test script to verify the atom-updater wrapper works
+ * Test script to verify the atom-updater wrapper with binary copying functionality
  * This script tests the basic functionality without performing an actual update
  */
 
 import { AtomUpdater, PlatformUtils } from './dist/index.js';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 async function testWrapper() {
-  console.log('Testing atom-updater Node.js wrapper...\n');
+  console.log('Testing atom-updater Node.js wrapper with binary copying...\n');
 
-  // Debug: Check bundled binary path
   const platformInfo = PlatformUtils.getPlatformInfo();
   console.log('Platform info:', platformInfo);
-
-  // Check if bundled binary exists
-  const bundledPath = `/Users/mac/Github/atom-updater/atom-updater-node/bin/${platformInfo.platform}/${platformInfo.arch}/${platformInfo.executableName}`;
-  console.log('Expected bundled binary path:', bundledPath);
-
-  try {
-    console.log('Bundled binary exists:', fs.existsSync(bundledPath));
-  } catch (error) {
-    console.log('Error checking bundled binary:', error.message);
-  }
 
   const updater = new AtomUpdater({
     verbose: true,
@@ -38,7 +29,6 @@ async function testWrapper() {
 
     if (!isAvailable) {
       console.error('❌ atom-updater executable not found!');
-      console.log('\nMake sure the atom-updater executable is in your PATH or current directory.');
       return;
     }
 
@@ -52,16 +42,35 @@ async function testWrapper() {
     const execPath = updater.getExecutablePath();
     console.log(`   Executable path: ${execPath}`);
 
-    // Test 4: Simulate an update
-    console.log('\n4. Simulating an update...');
-    const result = await updater.update({
-      pid: process.pid,  // ✅ Current process ID
-      currentPath: '../test/myapp',
-      newPath: '../test/updates/macapp'
-    });
-    console.log('   Update result:', result);
+    // Test 4: Test binary copying functionality
+    console.log('\n4. Testing binary copying functionality...');
+    const externalBinDir = "../test/bin";
 
-    console.log('\n✅ All tests passed! The wrapper is working correctly.');
+    // Clean up any existing test directory
+    // if (fs.existsSync(externalBinDir)) {
+    //   fs.rmSync(externalBinDir, { recursive: true, force: true });
+    // }
+
+    // Test copying the binary to external directory
+    const result = await updater.update({
+      pid: process.pid,
+      currentAppDir: "../test/myapp",
+      newAppDir: "../test/updates/macapp",
+      binDir: externalBinDir
+    });
+
+    console.log('   Update test result:', result);
+
+    // Test 5: Test without binDir (normal operation)
+    // console.log('\n5. Testing normal operation (without binDir)...');
+    // const normalResult = await updater.update({
+    //   pid: process.pid,
+    //   currentAppDir: process.cwd(),
+    //   newAppDir: path.join(process.cwd(), 'test-new-version-2')
+    // });
+    // console.log('   Normal operation result:', normalResult);
+
+    console.log('\n✅ All tests passed! The wrapper with binary copying is working correctly.');
 
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);

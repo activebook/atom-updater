@@ -6,13 +6,13 @@ export interface UpdateConfig {
   /** Process ID to wait for exit */
   pid: number;
   /** Path to current application directory (must be directory) */
-  currentPath: string;
+  currentAppDir: string;
   /** Path to new application directory (must be directory) */
-  newPath: string;
+  newAppDir: string;
   /** Optional specific executable to launch (for directories) */
   appName?: string;
-  /** Optional timeout for the update process */
-  timeout?: number;
+  /** Optional external directory to copy the atom-updater binary (for self-update scenarios) */
+  binDir?: string;
 }
 
 export interface UpdateResult {
