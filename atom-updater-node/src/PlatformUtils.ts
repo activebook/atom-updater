@@ -16,7 +16,7 @@ export class PlatformUtils {
     const currentPlatform = os.platform();
     if (currentPlatform === 'darwin') return 'darwin';
     if (currentPlatform === 'linux') return 'linux';
-    if (currentPlatform === 'win32') return 'windows';
+    if (currentPlatform === 'win32') return 'win32';
     throw new Error(`Unsupported platform: ${currentPlatform}`);
   }
 
@@ -39,20 +39,16 @@ export class PlatformUtils {
     const arch = this.getCurrentArchitecture();
 
     let executableName: string;
-    let archiveExt: string;
 
     switch (platform) {
-      case 'windows':
+      case 'win32':
         executableName = 'atom-updater.exe';
-        archiveExt = 'zip';
         break;
       case 'darwin':
         executableName = 'atom-updater';
-        archiveExt = 'tar.gz';
         break;
       case 'linux':
         executableName = 'atom-updater';
-        archiveExt = 'tar.gz';
         break;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
@@ -61,8 +57,7 @@ export class PlatformUtils {
     return {
       platform,
       arch,
-      executableName,
-      archiveExt
+      executableName
     };
   }
 
@@ -131,41 +126,6 @@ export class PlatformUtils {
     }
 
     return null; // Bundled binary not available
-  }
-
-  /**
-   * Check if the current platform supports the given feature
-   */
-  static platformSupports(feature: 'app-bundle' | 'windows-exe' | 'linux-executable'): boolean {
-    const platform = this.getCurrentPlatform();
-
-    switch (feature) {
-      case 'app-bundle':
-        return platform === 'darwin';
-      case 'windows-exe':
-        return platform === 'windows';
-      case 'linux-executable':
-        return platform === 'linux';
-      default:
-        return false;
-    }
-  }
-
-  /**
-   * Get platform-specific file extensions
-   */
-  static getExecutableExtensions(): string[] {
-    const platform = this.getCurrentPlatform();
-
-    switch (platform) {
-      case 'windows':
-        return ['.exe', '.com', '.bat', '.cmd'];
-      case 'darwin':
-      case 'linux':
-        return ['']; // No extension for Unix executables
-      default:
-        return [];
-    }
   }
 
   /**

@@ -16,8 +16,7 @@ export type {
   AtomUpdaterOptions,
   Platform,
   Architecture,
-  PlatformInfo,
-  DownloadOptions
+  PlatformInfo
 } from './types.js';
 
 // Error classes
@@ -25,7 +24,6 @@ export {
   AtomUpdaterError,
   ExecutableNotFoundError,
   UpdateFailedError,
-  DownloadFailedError
 } from './types.js';
 
 // Convenience function for quick updates

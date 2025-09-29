@@ -28,19 +28,6 @@ export interface UpdateResult {
   launchedPid?: number | undefined;
 }
 
-export interface DownloadOptions {
-  /** URL to download the update from */
-  url: string;
-  /** Directory to download the update to */
-  downloadPath: string;
-  /** Optional filename for the downloaded file */
-  filename?: string;
-  /** Optional headers for the download request */
-  headers?: Record<string, string>;
-  /** Whether to overwrite existing files */
-  overwrite?: boolean;
-}
-
 export interface AtomUpdaterOptions {
   /** Custom path to the atom-updater executable */
   executablePath?: string;
@@ -52,14 +39,13 @@ export interface AtomUpdaterOptions {
   logger?: (message: string) => void;
 }
 
-export type Platform = 'darwin' | 'linux' | 'windows';
+export type Platform = 'darwin' | 'linux' | 'win32';
 export type Architecture = 'x64' | 'arm64' | 'ia32';
 
 export interface PlatformInfo {
   platform: Platform;
   arch: Architecture;
   executableName: string;
-  archiveExt: string;
 }
 
 /**
@@ -100,15 +86,5 @@ export class UpdateFailedError extends AtomUpdaterError {
   constructor(message: string, cause?: Error) {
     super(message, 'UPDATE_FAILED', cause);
     this.name = 'UpdateFailedError';
-  }
-}
-
-/**
- * Error thrown when download fails
- */
-export class DownloadFailedError extends AtomUpdaterError {
-  constructor(message: string, cause?: Error) {
-    super(message, 'DOWNLOAD_FAILED', cause);
-    this.name = 'DownloadFailedError';
   }
 }

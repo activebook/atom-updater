@@ -6,6 +6,7 @@
  */
 
 import { AtomUpdater, PlatformUtils } from './dist/index.js';
+import fs from 'fs';
 
 async function testWrapper() {
   console.log('Testing atom-updater Node.js wrapper...\n');
@@ -19,7 +20,6 @@ async function testWrapper() {
   console.log('Expected bundled binary path:', bundledPath);
 
   try {
-    const fs = await import('fs');
     console.log('Bundled binary exists:', fs.existsSync(bundledPath));
   } catch (error) {
     console.log('Error checking bundled binary:', error.message);
@@ -51,6 +51,15 @@ async function testWrapper() {
     console.log('\n3. Getting executable path...');
     const execPath = updater.getExecutablePath();
     console.log(`   Executable path: ${execPath}`);
+
+    // Test 4: Simulate an update
+    console.log('\n4. Simulating an update...');
+    const result = await updater.update({
+      pid: process.pid,  // ✅ Current process ID
+      currentPath: '../test/myapp',
+      newPath: '../test/updates/macapp'
+    });
+    console.log('   Update result:', result);
 
     console.log('\n✅ All tests passed! The wrapper is working correctly.');
 

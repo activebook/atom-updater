@@ -3,7 +3,6 @@ import { PlatformUtils } from './PlatformUtils.js';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import { existsSync, statSync } from 'node:fs';
 
 /**
  * Main class for atom-updater Node.js wrapper
@@ -128,11 +127,6 @@ export class AtomUpdater {
           reject(new UpdateFailedError(`Failed to start update process: ${error.message}`, error));
         });
 
-        // Monitor for log file creation and PID information
-        this.monitorLogFile((newLogPath) => {
-          logPath = newLogPath;
-        });
-
       } catch (error) {
         reject(new UpdateFailedError(`Failed to execute update: ${error}`, error as Error));
       }
@@ -144,25 +138,6 @@ export class AtomUpdater {
    */
   private getLogPath(): string {
     return join(this.options.workingDirectory, 'atom-updater.log');
-  }
-
-  /**
-   * Monitor for log file creation (simple implementation)
-   */
-  private monitorLogFile(onLogCreated: (logPath: string) => void): void {
-    const logPath = this.getLogPath();
-
-    // Check if log file exists every 100ms for the first 2 seconds
-    let attempts = 0;
-    const checkInterval = setInterval(() => {
-      attempts++;
-      if (existsSync(logPath)) {
-        onLogCreated(logPath);
-        clearInterval(checkInterval);
-      } else if (attempts >= 20) { // 2 seconds
-        clearInterval(checkInterval);
-      }
-    }, 100);
   }
 
   /**
