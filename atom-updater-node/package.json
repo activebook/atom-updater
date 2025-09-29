@@ -1,6 +1,6 @@
 {
   "name": "@activebook/atom-updater",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Node.js wrapper for atom-updater Go executable - provides atomic directory replacement with rollback capabilities",
   "type": "module",
   "main": "dist/index.js",
