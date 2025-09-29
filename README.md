@@ -1,6 +1,6 @@
 # Atom-Updater
 
-🚀 **Node.js/JavaScript Developers**: Start with the [Node.js wrapper](#node-js-wrapper-recommended) for the easiest integration!
+**Node.js/JavaScript Developers**: Start with the [Node.js wrapper](#node-js-wrapper-recommended) for the easiest integration!
 
 A robust, cross-platform application updater with atomic directory replacement and rollback capabilities, designed to safely update application directories that cannot update themselves while running.
 
@@ -32,12 +32,12 @@ if (result.success) {
 ```
 
 ### Features
-- **🔄 Atomic Directory Updates**: All-or-nothing directory replacement with automatic rollback
-- **🍎 macOS .app Bundle Support**: Specialized handling for directories containing .app bundles
-- **📦 Self-Contained**: Bundled binaries eliminate external dependencies
-- **📦 Easy Integration**: Simple TypeScript API for Node.js and Electron apps
-- **🛡️ Robust Error Handling**: Graceful failure handling with safe rollback
-- **🚀 Smart Application Launching**: Auto-detects and launches the correct application
+- **Atomic Directory Updates**: All-or-nothing directory replacement with automatic rollback
+- **macOS .app Bundle Support**: Specialized handling for directories containing .app bundles
+- **Self-Contained**: Bundled binaries eliminate external dependencies
+- **Easy Integration**: Simple TypeScript API for Node.js and Electron apps
+- **Robust Error Handling**: Graceful failure handling with safe rollback
+- **Smart Application Launching**: Auto-detects and launches the correct application
 
 **[Full Node.js Documentation →](./atom-updater-node/README.md)**
 
