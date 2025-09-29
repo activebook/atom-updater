@@ -179,6 +179,7 @@ if [ "$DRY_RUN" = true ]; then
   echo "[DRY RUN] Would create tag '$VERSION'."
   echo "[DRY RUN] Would push tag to origin."
   echo "[DRY RUN] Would run 'goreleaser release --clean'."
+  echo "[DRY RUN] Would update atom-updater-node binaries."
   exit 0
 fi
 
@@ -200,5 +201,13 @@ git push origin "$VERSION"
 # 5. Run GoReleaser
 echo "Running GoReleaser..."
 goreleaser release --clean
+
+# 6. Update atom-updater-node binaries from the build artifacts
+echo "Updating atom-updater-node binaries..."
+if [ -f "build/update-node-binaries.sh" ]; then
+    bash build/update-node-binaries.sh
+else
+    echo "Warning: build/update-node-binaries.sh not found. Skipping binary update."
+fi
 
 echo "✅ Release process completed successfully for version $VERSION."

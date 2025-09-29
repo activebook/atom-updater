@@ -13,6 +13,7 @@ out/
 
 # Binaries (keep platform-specific ones)
 bin/*/*
+bin/*/*.log
 !bin/*/
 !bin/*/x64/
 !bin/*/arm64/
