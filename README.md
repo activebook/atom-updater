@@ -1,19 +1,49 @@
 # Atom-Updater
 
-A robust, cross-platform Go application designed to safely update application directories that cannot update themselves while running. It provides atomic directory replacement with advanced `.app` bundle support and comprehensive rollback capabilities.
+🚀 **Node.js/JavaScript Developers**: Start with the [Node.js wrapper](#node-js-wrapper-recommended) for the easiest integration!
 
-## Features
+A robust, cross-platform application updater with atomic directory replacement and rollback capabilities, designed to safely update application directories that cannot update themselves while running.
 
-- **🔄 Atomic Directory Replacement**: All-or-nothing directory replacement with automatic rollback
-- **🍎 macOS `.app` Bundle Support**: Specialized handling for directories containing `.app` bundles
-- **📊 Dual Logging**: Real-time console output + persistent log file (`atom-updater.log`)
-- **🛡️ Robust Error Handling**: Comprehensive logging and graceful failure handling with safe rollback
-- **🚀 Smart Application Launching**: Auto-detects and launches the correct application from directories
-- **🌐 Cross-Platform**: Works on Windows, macOS, and Linux
-- **⚡ Simple Integration**: Clean CLI interface with easy-to-parse version output
-- **🔒 Safe Operations**: Process monitoring and file validation with resilient PID handling
+## Node.js Wrapper (Recommended)
 
-## Installation
+Most developers should use the Node.js wrapper, which bundles the updater binary and provides a clean TypeScript API for Node.js and Electron applications.
+
+### Installation
+```bash
+npm install atom-updater
+```
+
+### Quick Start
+```typescript
+import { AtomUpdater } from 'atom-updater';
+
+const updater = new AtomUpdater();
+const result = await updater.update({
+  pid: process.pid,
+  currentAppDir: '/path/to/current/app',
+  newAppDir: '/path/to/new/app/version'
+});
+
+if (result.success) {
+  console.log('Update initiated successfully!');
+  // Exit immediately - atom-updater will handle the rest
+  process.exit(0);
+}
+```
+
+### Features
+- **🔄 Atomic Directory Updates**: All-or-nothing directory replacement with automatic rollback
+- **🍎 macOS .app Bundle Support**: Specialized handling for directories containing .app bundles
+- **📦 Self-Contained**: Bundled binaries eliminate external dependencies
+- **📦 Easy Integration**: Simple TypeScript API for Node.js and Electron apps
+- **🛡️ Robust Error Handling**: Graceful failure handling with safe rollback
+- **🚀 Smart Application Launching**: Auto-detects and launches the correct application
+
+**[Full Node.js Documentation →](./atom-updater-node/README.md)**
+
+## Go Binary (Advanced)
+
+For system-level integration or when you need the updater binary directly, download the pre-built binaries below.
 
 ### Download Pre-built Binaries
 
