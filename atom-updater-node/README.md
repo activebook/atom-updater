@@ -1,4 +1,4 @@
-# atom-updater-node
+# npm @activebook/atom-updater
 
 A TypeScript Node.js wrapper for the [atom-updater](https://github.com/activebook/atom-updater) Go executable. This package provides atomic directory replacement with rollback capabilities for Node.js and Electron applications.
 
@@ -25,7 +25,7 @@ The wrapper automatically finds and uses the correct binary for your platform an
 
 ### Self-Updating Applications
 
-For applications that need to update themselves, use the `binPath` parameter to copy the atom-updater binary to an external location first:
+For applications that need to update themselves, use the `binDir` parameter to copy the atom-updater binary to an external location first:
 
 1. **Copy Phase**: The bundled binary is copied to an external directory outside your app
 2. **Update Phase**: The external copy performs the atomic directory replacement
@@ -36,7 +36,7 @@ This approach prevents the updater from trying to replace itself during self-upd
 ## Installation
 
 ```bash
-npm install atom-updater
+npm install @activebook/atom-updater
 ```
 
 The package includes platform-specific `atom-updater` binaries, so no additional downloads are required. The wrapper automatically detects and uses the bundled binary for your platform and architecture.
@@ -100,15 +100,15 @@ const version = await updater.getVersion();
 
 Perform an atomic update by starting the atom-updater process as a detached background process. **This method returns immediately** - the actual update happens asynchronously after the calling process exits.
 
-For self-updating applications, use the `binPath` parameter to copy the atom-updater binary to an external location first. This prevents the updater from trying to replace itself.
+For self-updating applications, use the `binDir` parameter to copy the atom-updater binary to an external location first. This prevents the updater from trying to replace itself.
 
 ```typescript
 const result = await updater.update({
   pid: 12345,
-  currentPath: '/path/to/current',
-  newPath: '/path/to/new',
+  currentDir: '/path/to/current',
+  newDir: '/path/to/new',
   appName: 'optional-app-name', // Optional
-  binPath: '/tmp/atom-updater-external' // Optional: for self-updates
+  binDir: '/tmp/atom-updater-external' // Optional: for self-updates
 });
 
 // The method returns immediately with success: true
