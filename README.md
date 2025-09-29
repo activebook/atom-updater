@@ -42,6 +42,7 @@ Download the latest release for your platform from the [releases page](https://g
 - `--app-name <name>`: Optional specific executable to launch (for directories)
 
 **⚠️ Restrictions:**
+
 - Both `<current_dir>` and `<new_dir>` **MUST** be directories
 - Single files (like `.exe`) are **NOT** allowed
 - `.app` bundles are **NOT** allowed as direct arguments
@@ -83,6 +84,7 @@ Download the latest release for your platform from the [releases page](https://g
 ### Special `.app` Bundle Handling
 
 For directories containing `.app` bundles, the updater uses Apple's recommended approach:
+
 - **Atomic replacement**: `.app` → `.app.new` → `.app` pattern
 - **macOS-optimized**: Preserves all metadata and code signatures
 - **Permission-safe**: Avoids modifying existing `.app` bundle contents
