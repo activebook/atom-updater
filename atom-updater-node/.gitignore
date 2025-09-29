@@ -11,6 +11,13 @@ dist/
 build/
 out/
 
+# Binaries (keep platform-specific ones)
+bin/*/*
+!bin/*/
+!bin/*/x64/
+!bin/*/arm64/
+!bin/*/ia32/
+
 # Environment variables
 .env
 .env.local

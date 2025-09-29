@@ -5,10 +5,25 @@
  * This script tests the basic functionality without performing an actual update
  */
 
-import { AtomUpdater } from './dist/index.js';
+import { AtomUpdater, PlatformUtils } from './dist/index.js';
 
 async function testWrapper() {
   console.log('Testing atom-updater Node.js wrapper...\n');
+
+  // Debug: Check bundled binary path
+  const platformInfo = PlatformUtils.getPlatformInfo();
+  console.log('Platform info:', platformInfo);
+
+  // Check if bundled binary exists
+  const bundledPath = `/Users/mac/Github/atom-updater/atom-updater-node/bin/${platformInfo.platform}/${platformInfo.arch}/${platformInfo.executableName}`;
+  console.log('Expected bundled binary path:', bundledPath);
+
+  try {
+    const fs = await import('fs');
+    console.log('Bundled binary exists:', fs.existsSync(bundledPath));
+  } catch (error) {
+    console.log('Error checking bundled binary:', error.message);
+  }
 
   const updater = new AtomUpdater({
     verbose: true,

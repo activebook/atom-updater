@@ -78,6 +78,13 @@ export class PlatformUtils {
       return customPath;
     }
 
+    // 1. Try bundled binary first (self-contained)
+    const bundledPath = this.getBundledExecutablePath();
+    if (bundledPath) {
+      return bundledPath;
+    }
+
+    // 2. Fall back to system-installed (legacy support)
     const platformInfo = this.getPlatformInfo();
     const executableName = platformInfo.executableName;
 
@@ -102,6 +109,28 @@ export class PlatformUtils {
     }
 
     throw new ExecutableNotFoundError();
+  }
+
+  /**
+   * Get the path to the bundled executable for the current platform
+   */
+  private static getBundledExecutablePath(): string | null {
+    const platformInfo = this.getPlatformInfo();
+    const platform = platformInfo.platform;
+    const arch = platformInfo.arch;
+    const executableName = platformInfo.executableName;
+
+    // Get current module directory for ES modules
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+
+    // Path to bundled binary: bin/{platform}/{arch}/{executableName}
+    const bundledPath = path.join(currentDir, '..', 'bin', platform, arch, executableName);
+
+    if (fs.existsSync(bundledPath)) {
+      return bundledPath;
+    }
+
+    return null; // Bundled binary not available
   }
 
   /**
