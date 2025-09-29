@@ -1264,9 +1264,51 @@ func verifyChecksum(filePath, expectedChecksum string) error {
 	return nil
 }
 
-func main() {
-	// Enable logging with timestamps
+// setupLogging configures logging to both console and file
+func setupLogging() {
+	// Get the directory where the executable is located
+	execPath, err := os.Executable()
+	if err != nil {
+		log.Printf("Warning: Could not get executable path: %v", err)
+		execPath = "atom-updater" // fallback
+	}
+
+	execDir := filepath.Dir(execPath)
+	logFilePath := filepath.Join(execDir, "atom-updater.log")
+
+	// Clear the log file at startup
+	if err := os.WriteFile(logFilePath, []byte(""), 0644); err != nil {
+		log.Printf("Warning: Could not clear log file %s: %v", logFilePath, err)
+	}
+
+	// Open log file for appending
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Printf("Warning: Could not open log file %s: %v", logFilePath, err)
+		log.Printf("Continuing with console-only logging...")
+		return
+	}
+
+	// Set up logging to both console and file
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetOutput(io.MultiWriter(os.Stderr, logFile))
+
+	log.Printf("=== Atom-Updater Started ===")
+	log.Printf("Log file: %s", logFilePath)
+}
+
+// getExecutableDir returns the directory containing the atom-updater executable
+func getExecutableDir() string {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "." // fallback to current directory
+	}
+	return filepath.Dir(execPath)
+}
+
+func main() {
+	// Setup logging to both console and file
+	setupLogging()
 
 	// Parse command line arguments
 	config, err := parseArgs(os.Args)

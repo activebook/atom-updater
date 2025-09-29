@@ -8,6 +8,7 @@
 *.so
 *.dylib
 atom-updater
+atom-updater.log
 
 # Test binary, built with `go test -c`
 *.test
