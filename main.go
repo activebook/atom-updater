@@ -67,9 +67,9 @@ func generateTempFilename(originalPath, suffix string) string {
 func typeToString(appType ApplicationType) string {
 	switch appType {
 	case SingleFile:
-		return "single file"
+		return "single file (not supported)"
 	case MacAppBundle:
-		return "macOS app bundle"
+		return "macOS app bundle (not supported)"
 	case MacAppBundleDirectory:
 		return "macOS app bundle directory"
 	case MacDirectory:
@@ -396,8 +396,10 @@ func atomicReplace(currentPath, newPath string) error {
 
 	// Handle different application types
 	switch currentType {
-	case SingleFile, MacAppBundle:
-		return atomicFileReplace(currentPath, newPath)
+	case SingleFile:
+		return fmt.Errorf("single file applications are not supported - use directory-based updates")
+	case MacAppBundle:
+		return fmt.Errorf("direct .app bundle arguments are not supported - use directory containing .app bundles")
 	case MacAppBundleDirectory, MacDirectory, WindowsAppDirectory, LinuxAppDirectory, GenericDirectory:
 		return atomicDirectoryReplace(currentPath, newPath)
 	default:
@@ -1285,13 +1287,29 @@ func main() {
 		log.Printf("  App name: %s", config.AppName)
 	}
 
-	// Validate that source files exist
-	if _, err := os.Stat(config.CurrentPath); os.IsNotExist(err) {
+	// Validate that both paths are directories (not files or .app bundles)
+	currentInfo, err := os.Stat(config.CurrentPath)
+	if os.IsNotExist(err) {
 		log.Fatalf("Current application does not exist: %s", config.CurrentPath)
 	}
+	if !currentInfo.IsDir() {
+		log.Fatalf("Current path must be a directory, not a file: %s", config.CurrentPath)
+	}
 
-	if _, err := os.Stat(config.NewPath); os.IsNotExist(err) {
+	newInfo, err := os.Stat(config.NewPath)
+	if os.IsNotExist(err) {
 		log.Fatalf("New application does not exist: %s", config.NewPath)
+	}
+	if !newInfo.IsDir() {
+		log.Fatalf("New path must be a directory, not a file: %s", config.NewPath)
+	}
+
+	// Additional validation: don't allow .app bundles as direct arguments
+	if strings.HasSuffix(config.CurrentPath, ".app") {
+		log.Fatalf("Current path cannot be a .app bundle, must be a directory: %s", config.CurrentPath)
+	}
+	if strings.HasSuffix(config.NewPath, ".app") {
+		log.Fatalf("New path cannot be a .app bundle, must be a directory: %s", config.NewPath)
 	}
 
 	// Step 1: Wait for the target process to exit
@@ -1385,35 +1403,37 @@ func parseArgs(args []string) (*UpdateConfig, error) {
 
 // showUsage displays brief usage information
 func showUsage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [options] <pid> <current_path> <new_path> [--app-name <name>]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "Usage: %s [options] <pid> <current_dir> <new_dir> [--app-name <name>]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Options:\n")
 	fmt.Fprintf(os.Stderr, "  -v, --version    Show version information\n")
 	fmt.Fprintf(os.Stderr, "  -h, --help       Show this help message\n")
+	fmt.Fprintf(os.Stderr, "\nNote: Both current_dir and new_dir must be directories (not files or .app bundles)\n")
 }
 
 // showHelp displays detailed help information
 func showHelp() {
-	fmt.Fprintf(os.Stderr, "atom-updater %s - Application updater with atomic replacement\n\n", Version)
-	fmt.Fprintf(os.Stderr, "Usage: %s [options] <pid> <current_path> <new_path> [--app-name <name>]\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "atom-updater %s - Directory-based application updater with atomic replacement\n\n", Version)
+	fmt.Fprintf(os.Stderr, "Usage: %s [options] <pid> <current_dir> <new_dir> [--app-name <name>]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "Usage: %s --version\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\nOptions:\n")
 	fmt.Fprintf(os.Stderr, "  -v, --version    Show version information\n")
 	fmt.Fprintf(os.Stderr, "  -h, --help       Show this help message\n")
 	fmt.Fprintf(os.Stderr, "\nParameters:\n")
 	fmt.Fprintf(os.Stderr, "  <pid>            Process ID to wait for exit\n")
-	fmt.Fprintf(os.Stderr, "  <current_path>   Path to current application (file or directory)\n")
-	fmt.Fprintf(os.Stderr, "  <new_path>       Path to new application (file or directory)\n")
+	fmt.Fprintf(os.Stderr, "  <current_dir>    Path to current application directory (must be directory)\n")
+	fmt.Fprintf(os.Stderr, "  <new_dir>        Path to new application directory (must be directory)\n")
 	fmt.Fprintf(os.Stderr, "  --app-name <name> Optional: Name of executable to launch (for directories)\n")
+	fmt.Fprintf(os.Stderr, "\n⚠️  Restrictions:\n")
+	fmt.Fprintf(os.Stderr, "  - Both current_dir and new_dir MUST be directories\n")
+	fmt.Fprintf(os.Stderr, "  - Single files (like .exe) are NOT allowed\n")
+	fmt.Fprintf(os.Stderr, "  - .app bundles are NOT allowed as direct arguments\n")
 	fmt.Fprintf(os.Stderr, "\nExamples:\n")
-	fmt.Fprintf(os.Stderr, "  # Single file application\n")
-	fmt.Fprintf(os.Stderr, "  %s 12345 ./app.exe ./updates/app.exe\n", os.Args[0])
-	fmt.Fprintf(os.Stderr, "\n  # macOS .app bundle\n")
-	fmt.Fprintf(os.Stderr, "  %s 12345 ./MyApp.app ./updates/MyApp.app\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "  # macOS directory containing .app bundles\n")
+	fmt.Fprintf(os.Stderr, "  %s 12345 ./test/myapp ./test/updates/macapp\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\n  # Windows directory with specific exe\n")
 	fmt.Fprintf(os.Stderr, "  %s 12345 ./MyApp/ ./updates/MyApp/ --app-name app.exe\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\nSupported application types:\n")
-	fmt.Fprintf(os.Stderr, "  - Single executable files\n")
-	fmt.Fprintf(os.Stderr, "  - macOS .app bundles\n")
+	fmt.Fprintf(os.Stderr, "  - macOS directories containing .app bundles ✨\n")
 	fmt.Fprintf(os.Stderr, "  - macOS directories with executables\n")
 	fmt.Fprintf(os.Stderr, "  - Windows directories with executables\n")
 	fmt.Fprintf(os.Stderr, "  - Linux directories with executables\n")
